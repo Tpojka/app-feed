@@ -4,6 +4,7 @@ namespace App;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 
 class Feed extends Model
@@ -22,7 +23,7 @@ class Feed extends Model
     ];
 
     protected $with = [
-        'reader_result',
+        'readerResult',
         'categories',// not so expensive although children:many shouldn't be eager loaded by default
     ];
 
@@ -40,5 +41,13 @@ class Feed extends Model
     public function categories()
     {
         return $this->morphToMany(Category::class, 'categoryable');
+    }
+
+    /**
+     * @return HasMany
+     */
+    public function items()
+    {
+        return $this->hasMany(Item::class);
     }
 }

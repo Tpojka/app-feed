@@ -17,7 +17,6 @@ class CreateReaderResultsTable extends Migration
             $table->id();
             $table->dateTimeTz('modified_since');
             $table->dateTimeTz('date');
-            $table->text('document_content')->nullable()->default(null)->comment('Should be considered is this field needed');
             $table->string('url');
             $table->timestamps();
         });

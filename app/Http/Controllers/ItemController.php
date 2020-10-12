@@ -3,21 +3,37 @@
 namespace App\Http\Controllers;
 
 use App\Item;
+use App\Service\Feed\FeedService;
+use FeedIo\Reader\Result;
+use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Contracts\View\Factory;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
 
 class ItemController extends Controller
 {
+    private $feedService;
+
+    public function __construct()
+    {
+        $this->feedService = new FeedService();
+    }
+
     /**
      * Display a listing of the resource.
      *
-     * @return Response
+     * @return Application|Factory|Response|View
      */
     public function index()
     {
         $items = Item::paginate(10);
 
-        // if no items start the Job of getting items
+        if ($items->isEmpty()) {
+            // good place for Job Queue
+            $this->feedService->fetchFeed();
+        }
 
         return view('item.index', compact('items'));
     }
@@ -88,10 +104,18 @@ class ItemController extends Controller
         //
     }
 
-    public function fetch()
+
+    public function fetch(Request $request)
     {
-        $source = 'https://xkcd.com/atom.xml';
-
-
+        $return = response()->json(['error' => 'Server error.'], 500);
+        try {
+            $this->feedService->fetchFeed();
+            $return = response()->json(['message' => 'Success.'], 200);
+        } catch (\UnexpectedValueException|\Exception $e) {
+            Log::error($e->getMessage());
+            $return = response()->json(['error' => $e->getMessage()], $e->getCode());
+        } finally {
+            return $return;
+        }
     }
 }

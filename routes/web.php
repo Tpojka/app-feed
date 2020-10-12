@@ -18,5 +18,5 @@ Route::get('/', function () {
 });
 
 Route::get('tests/{source?}', 'TestController@index')->name('test.index');
-Route::get('items/fetch', 'ItemController@fetch')->name('items.fetch');
+Route::post('items/fetch', 'ItemController@fetch')->name('items.fetch');
 Route::resource('items', 'ItemController');

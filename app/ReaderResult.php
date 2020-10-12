@@ -10,7 +10,6 @@ class ReaderResult extends Model
     protected $fillable = [
         'modified_since',
         'date',
-        'document_content',
         'url',
     ];
 
