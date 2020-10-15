@@ -7,13 +7,16 @@ use App\Item;
 use App\Service\Feed\FeedService;
 use Exception;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
+use Psr\SimpleCache\InvalidArgumentException;
 use Symfony\Component\HttpFoundation\Exception\BadRequestException;
 use Throwable;
 use UnexpectedValueException;
@@ -32,29 +35,45 @@ class ItemController extends Controller
      *
      * @param Request $request
      * @return Application|Factory|Response|View
+     * @throws InvalidArgumentException
      */
     public function index(Request $request)
     {
-        if (!Item::count()) {
-            // good place for Job Queue
-            $this->feedService->fetchFeed();
-        }
-
         $getPage = 1;
 
         if (1 <= (int)$request->get('page')) {
             $getPage = (int)$request->get('page');
         }
 
-        $value = Cache::store('file')->get('foo');
-
-        if (!$value) {
-            $value = Cache::store('dynamodb')->put('foo', 'bar', 600); // 10 Minutes
-        }
-
-        $items = Item::paginate(10);
+        $items = $this->fetchItems($getPage);
 
         return view('item.index', compact('items'));
+    }
+
+    /**
+     * @param int $getPage
+     * @param string|null $source
+     * @return LengthAwarePaginator
+     * @throws InvalidArgumentException
+     */
+    private function fetchItems(int $getPage = 1, ?string $source = null): ?LengthAwarePaginator
+    {
+        $return = null;
+
+        try {
+            if (!$items = Cache::store('file')->get('items:index:get_page_' . (string)$getPage)) {
+                if (!Item::count()) {
+                    $this->feedService->fetchFeed();
+                }
+                $data = Item::paginate(10);
+                Cache::store('file')->put('items:index:get_page_' .  (string)$data->currentPage(), $data, 3600);
+            }
+            $return = Cache::store('file')->get('items:index:get_page_' . (string)$getPage);
+        } catch (Exception $e) {
+            $return = null;
+        } finally {
+            return $return;
+        }
     }
 
     /**
@@ -134,11 +153,12 @@ class ItemController extends Controller
             if (!$request->ajax()) {
                 throw new BadRequestException('Method Not Allowed', 405);
             }
-            if (!Item::count()) {
-                $this->feedService->fetchFeed();
+            $items = $this->fetchItems();
+            if (is_null($items)) {
+                throw new Exception('Server error.', 500);
             }
             $return = response()->json(['message' => 'Success.'], 200);
-        } catch (UnexpectedValueException|BadRequestException|Exception $e) {
+        } catch (UnexpectedValueException|BadRequestException|InvalidArgumentException|Exception $e) {
             Log::error(formatErrorLine($e));
             //@todo this kind of messages shouldn't be provided to frontend in production
             // but generic message only

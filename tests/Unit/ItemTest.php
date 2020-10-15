@@ -4,12 +4,29 @@ namespace Tests\Unit;
 
 use App\Item;
 use App\Service\Feed\FeedService;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 use PHPUnit\Framework\Assert;
 use Tests\TestCase;
 use UnexpectedValueException;
 
-class ExampleTest extends TestCase
+class ItemTest extends TestCase
 {
+    public function setUp(): void
+    {
+        parent::setUp();
+
+        Artisan::call('cache:clear');
+        Artisan::call('migrate:refresh');
+    }
+
+    public function tearDown(): void
+    {
+        Artisan::call('migrate:reset');
+        parent::tearDown();
+    }
+
     /**
      * @test
      */
@@ -40,12 +57,20 @@ class ExampleTest extends TestCase
     }
 
     /**
+     * Helper method
+     */
+    private function fetchFeed(): void
+    {
+        $feedService = new FeedService();
+        $feedService->fetchFeed();
+    }
+
+    /**
      * @test
      */
     public function default_source_is_set_and_its_a_valid_xml()
     {
-        $feedService = new FeedService();
-        $feedService->fetchFeed();
+        $this->fetchFeed();
 
         $items = Item::count();
 
@@ -57,8 +82,7 @@ class ExampleTest extends TestCase
      */
     public function return_500_and_error_message_if_rate_is_not_made_through_ajax()
     {
-        // already seeded data in method above
-        // should be considered seeding and resetting through setUp tearDown
+        $this->fetchFeed();
 
         $response = $this->post('/items/rate', ['item_id' => 1, 'rating' => 5]);
 
@@ -67,5 +91,19 @@ class ExampleTest extends TestCase
         $content = json_decode($response->getContent(), true);
 
         $this->assertEquals('Server error.', $content['error']);
+    }
+
+    /**
+     * @test
+     */
+    public function items_from_cache_is_instance_of_length_aware_paginator_object()
+    {
+        $items = Item::paginate(10);
+
+        Cache::store('file')->put('items:index:get_page_' .  (string)$items->currentPage(), $items, 3600);
+
+        $itemsFromCache = Cache::store('file')->get('items:index:get_page_1');
+
+        $this->assertTrue($itemsFromCache instanceof LengthAwarePaginator);
     }
 }
