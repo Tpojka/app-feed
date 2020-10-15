@@ -28,7 +28,7 @@
         <div class="collapse navbar-collapse" id="navbarResponsive">
             <ul class="navbar-nav ml-auto">
                 <li class="nav-item active">
-                    <a class="nav-link" href="{{ route('items.index') }}">Items
+                    <a class="nav-link" href="{{ route('items.index') }}">Home
                         <span class="sr-only">(current)</span>
                     </a>
                 </li>
@@ -66,10 +66,10 @@
             <div class="card mt-4">
                 <div class="card-body">
                     @if($items->isEmpty())
-                    <h3 class="card-title">No articles at the moment</h3>
-                    <small class="card-title">Click button bellow or try refreshing a page in a minute</small>
+                        <h3 class="card-title">No articles at the moment</h3>
+                        <small class="card-title">Click button bellow or try refreshing a page in a minute</small>
                     @else
-                    <h3 class="card-title">Latest articles</h3>
+                        <h3 class="card-title">Latest articles</h3>
                     @endif
                 </div>
             </div>
@@ -80,21 +80,17 @@
                     {!! $items->isNotEmpty() ? 'Articles' : '<div class="spinner-border text-info get-items-spinner" role="status"></div><a href="/items/fetch" class="btn btn-outline-primary float-right get-items">Get articles</a>' !!}
                 </div>
                 @if($items->isNotEmpty())
-                <div class="card-body">
-                    @foreach($items as $item)
-                        <h3><a href="{{ $item->link }}" target="_blank">{{ $item->title }}</a></h3>
-                    <p>{!! $item->description !!}</p>
-                    <small class="text-muted">Posted by {{ $item->author_signature ?: 'Anonymous' }} on {{ $item->last_modified }}</small>
-                    <div class="row">
-                        <div class="col-sm-6 offset-sm-6 text-right"><p id="average-rating-{{ $item->id }}">{{ $item->avg_rating ? 'Average rating: ' : 'Be first to rate' }} <span>{{ $item->avg_rating }}</span></p> <input id="input-rating-{{$item->id}}" type="number" min="1" max="5" value="5"> <button class="btn btn-outline-secondary btn-rate" data-rate="rate_{{ $item->id }}">Rate</button></div>
-{{--                        <div class="col-6"><input type="number" min="1" max="5" value="5"> <button class="btn btn-outline-secondary">Rate</button></div>--}}
+                    <div class="card-body">
+                        @foreach($items as $item)
+                            <h3><a href="{{ $item->link }}" target="_blank">{{ $item->title }}</a></h3>
+                            <p>{!! $item->description !!}</p>
+                            <small class="text-muted">Posted by Anonymous on {{ $item->last_modified }}</small>
+                            @if(!$loop->last)
+                                <hr>
+                            @endif
+                        @endforeach
                     </div>
-                    @if(!$loop->last)
-                    <hr>
-                    @endif
-                    @endforeach
-                </div>
-                {{ $items->links() }}
+                    {{ $items->links() }}
                 @endif
             </div>
             <!-- /.card -->
@@ -129,35 +125,6 @@
                 console.log(err)
             }).finally(function () {
                 location.href = "{{ route('items.index') }}"
-            })
-        })
-
-        $('.btn-rate').on('click', function (e) {
-            e.preventDefault()
-            const rateButtonIdentifier = $(this).data('rate')
-            const rbiToArr = rateButtonIdentifier.split('_')
-            const itemId = parseInt(rbiToArr[rbiToArr.length - 1])
-            if (!itemId) {
-                return
-            }
-            const rating = parseInt($('#input-rating-' + itemId).val())
-            if (!rbiToArr.length) {
-                return
-            }
-
-            const postData = {
-                item_id: itemId,
-                rating: rating
-            }
-
-            axios.post("{{ route('items.rate') }}", postData).then(function (res) {
-                // got average rating
-                $('#average-rating-' + itemId).text('Average rating: ')
-                $('#average-rating-' + itemId).append('<span></span>')
-                $('#average-rating-' + itemId + ' span').text(res.data.item_rating_average)
-                $("#input-rating-" +itemId).val(5)
-            }).catch(function (err) {
-                console.log(err)
             })
         })
     })

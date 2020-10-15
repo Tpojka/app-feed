@@ -51,4 +51,21 @@ class ExampleTest extends TestCase
 
         $this->assertTrue(1 <= $items);
     }
+
+    /**
+     * @test
+     */
+    public function return_500_and_error_message_if_rate_is_not_made_through_ajax()
+    {
+        // already seeded data in method above
+        // should be considered seeding and resetting through setUp tearDown
+
+        $response = $this->post('/items/rate', ['item_id' => 1, 'rating' => 5]);
+
+        $this->assertEquals(500, $response->getStatusCode());
+
+        $content = json_decode($response->getContent(), true);
+
+        $this->assertEquals('Server error.', $content['error']);
+    }
 }

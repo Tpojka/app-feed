@@ -7,9 +7,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use willvincent\Rateable\Rateable;
 
 class Item extends Model
 {
+    use Rateable;
+
     protected $fillable = [
         'feed_id',
         'title',
@@ -27,7 +30,8 @@ class Item extends Model
 
     protected $appends = [
         'author_signature',
-        'first_media'
+        'first_media',
+        'avg_rating'
     ];
 
     /**
@@ -95,5 +99,16 @@ class Item extends Model
     public function getFirstMediaAttribute()
     {
         return $this->media()->latest()->first();
+    }
+
+    public function getAvgRatingAttribute()
+    {
+        $return = null;
+
+        if ($this->averageRating()) {
+            $return = (int)round($this->averageRating());
+        }
+
+        return $return;
     }
 }
