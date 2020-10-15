@@ -28,7 +28,7 @@
         <div class="collapse navbar-collapse" id="navbarResponsive">
             <ul class="navbar-nav ml-auto">
                 <li class="nav-item active">
-                    <a class="nav-link" href="{{ route('items.index') }}">Home
+                    <a class="nav-link" href="{{ route('items.index') }}">Items
                         <span class="sr-only">(current)</span>
                     </a>
                 </li>
@@ -54,8 +54,8 @@
         <div class="col-lg-3">
             <h1 class="my-4">Feed Assignment</h1>
             <div class="list-group">
-                <a href="#" class="list-group-item active">Items</a>
-                <a href="#" class="list-group-item">Category 2</a>
+                <a href="{{ route('items.index') }}" class="list-group-item{{ request()->route()->getName() === 'items.index' ? ' active' : '' }}">Items</a>
+                <a href="{{ route('items.create') }}" class="list-group-item{{ request()->route()->getName() === 'items.create' ? ' active' : '' }}">Add new (like Dashboard or Form)</a>
                 <a href="#" class="list-group-item">Category 3</a>
             </div>
         </div>
@@ -82,11 +82,12 @@
                 @if($items->isNotEmpty())
                 <div class="card-body">
                     @foreach($items as $item)
-                    <h3>{{ $item->title }}</h3>
-                    <p>{{ $item->description }}</p>
+                        <h3><a href="{{ $item->link }}" target="_blank">{{ $item->title }}</a></h3>
+                    <p>{!! $item->description !!}</p>
                     <small class="text-muted">Posted by Anonymous on {{ $item->last_modified }}</small>
-                    <a href="{{ $item->link }}" class="btn btn-outline-primary float-right">Go to page</a>
+                    @if(!$loop->last)
                     <hr>
+                    @endif
                     @endforeach
                 </div>
                 {{ $items->links() }}

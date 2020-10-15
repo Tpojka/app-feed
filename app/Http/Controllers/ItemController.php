@@ -4,13 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Item;
 use App\Service\Feed\FeedService;
-use FeedIo\Reader\Result;
+use Exception;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\View\Factory;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Exception\BadRequestException;
+use UnexpectedValueException;
 
 class ItemController extends Controller
 {
@@ -104,15 +107,23 @@ class ItemController extends Controller
         //
     }
 
-
+    /**
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function fetch(Request $request)
     {
         $return = response()->json(['error' => 'Server error.'], 500);
         try {
-            $this->feedService->fetchFeed();
+            if (!$request->ajax()) {
+                throw new BadRequestException('Method Not Allowed', 405);
+            }
+            if (!Item::count()) {
+                $this->feedService->fetchFeed();
+            }
             $return = response()->json(['message' => 'Success.'], 200);
-        } catch (\UnexpectedValueException|\Exception $e) {
-            Log::error($e->getMessage());
+        } catch (UnexpectedValueException|BadRequestException|Exception $e) {
+            Log::error(formatErrorLine($e));
             $return = response()->json(['error' => $e->getMessage()], $e->getCode());
         } finally {
             return $return;

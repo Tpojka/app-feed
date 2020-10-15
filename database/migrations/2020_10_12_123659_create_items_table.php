@@ -18,7 +18,7 @@ class CreateItemsTable extends Migration
             $table->foreignId('feed_id')->constrained();
             $table->string('title')->nullable();
             $table->string('public_id')->nullable();
-            $table->string('description')->nullable();
+            $table->text('description')->nullable();
             $table->dateTimeTz('last_modified')->nullable();
             $table->string('link')->nullable();
             $table->string('host')->nullable();

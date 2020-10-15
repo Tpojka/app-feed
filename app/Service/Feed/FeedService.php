@@ -9,13 +9,16 @@
 namespace App\Service\Feed;
 
 use App\Feed;
-use App\Item;
 use App\ReaderResult;
 use Carbon\Carbon;
+use Exception;
 use FeedIo\Factory;
+use FeedIo\Feed\ItemInterface;
 use FeedIo\FeedInterface;
 use FeedIo\FeedIo;
 use FeedIo\Reader\Result;
+use Throwable;
+use UnexpectedValueException;
 
 class FeedService
 {
@@ -39,12 +42,12 @@ class FeedService
             $source = SELF::DEFAULT_SOURCE;
         }
 
+        if (false === $this->isSourceValidXml($source)) {
+            throw new UnexpectedValueException();
+        }
+
         // read a feed
         $result = $this->feedIo->read($source);
-
-        if (!$result) {
-            throw new \UnexpectedValueException();
-        }
 
         // reader result
         $readerResult = $this->storeReaderResult($result);
@@ -104,38 +107,120 @@ class FeedService
         }
     }
 
+    /**
+     * @param Feed $feed
+     * @param FeedInterface $feedioFeed
+     * @todo foreach insert can be expensive, should be discussed of another approach
+     */
     private function storeItems(Feed $feed, FeedInterface $feedioFeed)
     {
-//        $create = [];
-//
-//        $now = Carbon::now();
-//
-//        foreach ($feedioFeed as $item) {
-//            $create[] = [
-//                'feed_id' => $feedId,
-//                'title' => $item->getTitle(),
-//                'public_id' => $item->getPublicId(),
-//                'description' => $item->getDescription(),
-//                'last_modified' => $item->getLastModified(),
-//                'link' => $item->getLink(),
-//                'host' => $item->getHost(),
-//                'created_at' => $now,
-//                'updated_at' => $now,
-//            ];
-//        }
-//
-//        Item::insert($create);
-
         foreach ($feedioFeed as $item) {
-            $feed->items()->updateOrCreate([
+
+            $newItem = $feed->items()->updateOrCreate([
                 'public_id' => $item->getPublicId(),
             ], [
                 'title' => $item->getTitle(),
                 'description' => $item->getDescription(),
                 'last_modified' => $item->getLastModified(),
                 'link' => $item->getLink(),
-                'host' => $item->getHost(),
+                'host' => $feedioFeed->getHost(),
             ]);
+
+            $authorInsertData = $this->authorInsertData($item);
+
+            if (!empty($authorInsertData)) {
+                $newItem->author()->create($authorInsertData);
+            }
+
+            $mediaInsertData = $this->mediaInsertData($item);
+
+            if (!empty($mediaInsertData)) {
+                $newItem->media()->insert($mediaInsertData);
+            }
+        }
+    }
+
+    /**
+     * @param string $source
+     * @return bool
+     */
+    private function isSourceValidXml(string $source): bool
+    {
+        $return = false;
+
+        try {
+            if (false === simplexml_load_file($source)) {
+                throw new UnexpectedValueException();
+            }
+            $return = true;
+        } catch (UnexpectedValueException|Exception $e) {
+            $return = false;
+        } finally {
+            return $return;
+        }
+    }
+
+    /**
+     * @param ItemInterface $item
+     * @return array
+     */
+    private function authorInsertData(ItemInterface $item): array
+    {
+        $authorInsertData = [];
+
+        try {
+            if (!$item->getAuthor()) {
+                throw new Exception('No Item\'s Author.');
+            }
+            if (!is_null($item->getAuthor()->getName())) {
+                $authorInsertData['name'] = $item->getAuthor()->getName();
+            }
+            if (!is_null($item->getAuthor()->getEmail())) {
+                $authorInsertData['email'] = $item->getAuthor()->getEmail();
+            }
+            if (!is_null($item->getAuthor()->getUri())) {
+                $authorInsertData['uri'] = $item->getAuthor()->getUri();
+            }
+        } catch (Throwable $t) {
+            $authorInsertData = [];
+        } finally {
+            return $authorInsertData;
+        }
+    }
+
+    /**
+     * @param ItemInterface $item
+     * @return array
+     */
+    private function mediaInsertData(ItemInterface $item): array
+    {
+        $mediaInsertData = [];
+        try {
+            if (!count($item->getMedias())) {
+                throw new Exception('No Item\'s Media.');
+            }
+
+            $media = $item->getMedias();
+
+            $now = Carbon::now();
+
+            foreach ($media as $m) {
+                $mediaInsertData[] = [
+                    'node_name' => $m->getNodeName(),
+                    'type' => $m->getType(),
+                    'url' => $m->getUrl(),
+                    'length' => $m->getLength(),
+                    'title' => $m->getTitle(),
+                    'description' => $m->getDescription(),
+                    'thumbnail' => $m->getThumbnail(),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+        } catch (Throwable $t) {
+            $mediaInsertData = [];
+        } finally {
+            return $mediaInsertData;
         }
     }
 }

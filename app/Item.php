@@ -17,6 +17,7 @@ class Item extends Model
         'description',
         'last_modified',
         'link',
+        'host',
     ];
 
     protected $with = [
