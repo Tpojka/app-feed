@@ -84,7 +84,7 @@
                     @foreach($items as $item)
                         <h3><a href="{{ $item->link }}" target="_blank">{{ $item->title }}</a></h3>
                     <p>{!! $item->description !!}</p>
-                    <small class="text-muted">Posted by Anonymous on {{ $item->last_modified }}</small>
+                    <small class="text-muted">Posted by {{ $item->author_signature ?: 'Anonymous' }} on {{ $item->last_modified }}</small>
                     @if(!$loop->last)
                     <hr>
                     @endif

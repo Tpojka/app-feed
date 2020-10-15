@@ -111,7 +111,7 @@ class ItemController extends Controller
      * @param Request $request
      * @return JsonResponse
      */
-    public function fetch(Request $request)
+    public function fetch(Request $request): JsonResponse
     {
         $return = response()->json(['error' => 'Server error.'], 500);
         try {
@@ -124,7 +124,12 @@ class ItemController extends Controller
             $return = response()->json(['message' => 'Success.'], 200);
         } catch (UnexpectedValueException|BadRequestException|Exception $e) {
             Log::error(formatErrorLine($e));
-            $return = response()->json(['error' => $e->getMessage()], $e->getCode());
+            //@todo this kind of messages shouldn't be provided to frontend in production
+            // but generic message only
+            // we can go with BadRequestException though
+            if ($e instanceof BadRequestException) {
+                $return = response()->json(['error' => $e->getMessage()], $e->getCode());
+            }
         } finally {
             return $return;
         }

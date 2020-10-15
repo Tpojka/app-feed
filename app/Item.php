@@ -22,10 +22,11 @@ class Item extends Model
 
     protected $with = [
         'feed',
-        'categories',// not so expensive although children:many shouldn't be eager loaded by default
+        'categories',// not so expensive in this particular use although children:many shouldn't be eager loaded by default
     ];
 
     protected $appends = [
+        'author_signature',
         'first_media'
     ];
 
@@ -51,6 +52,33 @@ class Item extends Model
     public function author()
     {
         return $this->hasOne(Author::class);
+    }
+
+    /**
+     * Gets first available item's author signature (name||uri||email) or returns null
+     *
+     * @return string|null
+     */
+    public function getAuthorSignatureAttribute(): ?string
+    {
+        $return = null;
+
+        try {
+            if ($this->author()->isEmpty()) {
+                throw new \Exception('No author');
+            }
+            $return = array_filter($this->author()->first()->getAttributes(), function ($v, $k) {
+                return in_array($k, ['name', 'uri', 'email']) && !is_null($v);
+            }, ARRAY_FILTER_USE_BOTH);
+
+            if (!is_null($return)) {
+                $return = array_shift($return);
+            }
+        } catch (\Throwable $t) {
+            $return = null;
+        } finally {
+            return $return;
+        }
     }
 
     /**
