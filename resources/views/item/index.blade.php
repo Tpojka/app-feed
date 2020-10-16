@@ -55,8 +55,7 @@
             <h1 class="my-4">Feed Assignment</h1>
             <div class="list-group">
                 <a href="{{ route('items.index') }}" class="list-group-item{{ request()->route()->getName() === 'items.index' ? ' active' : '' }}">Items</a>
-                <a href="{{ route('items.create') }}" class="list-group-item{{ request()->route()->getName() === 'items.create' ? ' active' : '' }}">Add new (like Dashboard or Form)</a>
-                <a href="#" class="list-group-item">Category 3</a>
+                <a href="{{ route('items.create') }}" class="list-group-item{{ request()->route()->getName() === 'items.create' ? ' active' : '' }}">Add new</a>
             </div>
         </div>
         <!-- /.col-lg-3 -->

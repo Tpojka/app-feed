@@ -9,6 +9,7 @@
 namespace App\Service\Feed;
 
 use App\Feed;
+use App\Item;
 use App\ReaderResult;
 use Carbon\Carbon;
 use Exception;
@@ -17,6 +18,8 @@ use FeedIo\Feed\ItemInterface;
 use FeedIo\FeedInterface;
 use FeedIo\FeedIo;
 use FeedIo\Reader\Result;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 use Throwable;
 use UnexpectedValueException;
 
@@ -36,30 +39,74 @@ class FeedService
         $this->feedIo = Factory::create()->getFeedIo();
     }
 
-    public function fetchFeed(?string $source = null)
+    /**
+     * Method must set cache of items collection and return void
+     *
+     * @param int $getPage
+     * @param string|null $source
+     * @return void
+     * @throws Throwable
+     */
+    public function fetchFeed(int $getPage = 1, ?string $source = null): void
     {
-        if (is_null($source)) {
-            $source = SELF::DEFAULT_SOURCE;
+        try {
+            if (is_null($source)) {
+                $source = SELF::DEFAULT_SOURCE;
+            }
+
+            if (false === $this->isSourceValidXml($source)) {
+                throw new UnexpectedValueException();
+            }
+
+            $sourceExists = $this->isSourceAlreadyExistsInDb($source);
+
+            $lastItem = Item::query()->when($sourceExists, function (Builder $query) use ($source) {
+                $query->where(['feed.reader_result' => $source]);
+            })->orderBy('last_modified', 'desc')->first();
+
+            $diff = 7776000;// last 90 days
+
+            if ($lastItem) {
+                $now = Carbon::now();
+                $then = $lastItem->last_modified;
+                $diff = $now->diffInSeconds($then);
+            }
+
+            // @todo this hard-coded value should go to config file
+            if (7200 > $diff) {
+                $itemsPaginate = Item::paginate(10, ['*'], 'page', $getPage);
+                Cache::store('file')->put('items:index:get_page_' . (string)$getPage, $itemsPaginate);
+                Cache::store('file')->put('items:pagination:total_pages', $itemsPaginate->total());
+            }
+
+            if (isset($itemsPaginate) && $itemsPaginate->isNotEmpty()) {
+                // we set the cache that's all matter
+                return;
+            }
+
+            // read a feed
+            $result = $this->feedIo->readSince($source, new Carbon("-$diff seconds"));
+
+            // reader result
+            $readerResult = $this->storeReaderResult($result);
+
+            // feed
+            $feed = $this->storeFeed($readerResult->id, $result->getFeed());
+            if (1 <= $result->getFeed()->getCategories()->count()) {
+                $this->storeFeedCategories($feed, $result->getFeed()->getCategories());
+            }
+
+            // items
+            $this->storeItems($feed, $result->getFeed());
+
+            $itemsPaginate = Item::paginate(10);
+
+            Cache::store('file')->put('items:index:get_page_' . (string)$getPage, $itemsPaginate);
+            Cache::store('file')->put('items:pagination:total_pages', $itemsPaginate->total());
+
+        } catch (Throwable $t) {
+            throw $t;
         }
-
-        if (false === $this->isSourceValidXml($source)) {
-            throw new UnexpectedValueException();
-        }
-
-        // read a feed
-        $result = $this->feedIo->read($source);
-
-        // reader result
-        $readerResult = $this->storeReaderResult($result);
-
-        // feed
-        $feed = $this->storeFeed($readerResult->id, $result->getFeed());
-        if (1 <= $result->getFeed()->getCategories()->count()) {
-            $this->storeFeedCategories($feed, $result->getFeed()->getCategories());
-        }
-
-        // items
-        $this->storeItems($feed, $result->getFeed());
     }
 
     /**
@@ -129,12 +176,14 @@ class FeedService
             $authorInsertData = $this->authorInsertData($item);
 
             if (!empty($authorInsertData)) {
+                // author
                 $newItem->author()->create($authorInsertData);
             }
 
             $mediaInsertData = $this->mediaInsertData($item);
 
             if (!empty($mediaInsertData)) {
+                // media
                 $newItem->media()->insert($mediaInsertData);
             }
         }
@@ -144,7 +193,7 @@ class FeedService
      * @param string $source
      * @return bool
      */
-    private function isSourceValidXml(string $source): bool
+    public function isSourceValidXml(string $source): bool
     {
         $return = false;
 
@@ -158,6 +207,11 @@ class FeedService
         } finally {
             return $return;
         }
+    }
+
+    public function isSourceAlreadyExistsInDb(string $source)
+    {
+        return ReaderResult::where(['url' => $source])->exists();
     }
 
     /**

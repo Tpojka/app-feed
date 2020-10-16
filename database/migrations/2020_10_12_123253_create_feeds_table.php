@@ -15,7 +15,7 @@ class CreateFeedsTable extends Migration
     {
         Schema::create('feeds', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('reader_result_id')->constrained();
+            $table->foreignId('reader_result_id')->constrained()->onUpdate('cascade')->onDelete('cascade');
             $table->string('url')->nullable();
             $table->string('language')->nullable();
             $table->string('logo')->nullable();

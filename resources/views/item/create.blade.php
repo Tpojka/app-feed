@@ -55,8 +55,7 @@
             <h1 class="my-4">Feed Assignment</h1>
             <div class="list-group">
                 <a href="{{ route('items.index') }}" class="list-group-item{{ request()->route()->getName() === 'items.index' ? ' active' : '' }}">Items</a>
-                <a href="{{ route('items.create') }}" class="list-group-item{{ request()->route()->getName() === 'items.create' ? ' active' : '' }}">Add new (like Dashboard or Form)</a>
-                <a href="#" class="list-group-item">Category 3</a>
+                <a href="{{ route('items.create') }}" class="list-group-item{{ request()->route()->getName() === 'items.create' ? ' active' : '' }}">Add new</a>
             </div>
         </div>
         <!-- /.col-lg-3 -->
@@ -65,33 +64,32 @@
 
             <div class="card mt-4">
                 <div class="card-body">
-                    @if($items->isEmpty())
-                        <h3 class="card-title">No articles at the moment</h3>
-                        <small class="card-title">Click button bellow or try refreshing a page in a minute</small>
-                    @else
-                        <h3 class="card-title">Latest articles</h3>
-                    @endif
+                    <h3 class="card-title">Add New XML Link</h3>
+                    <small class="card-title">Pass a valid xml link for articles to be stored in DB</small>
                 </div>
             </div>
             <!-- /.card -->
 
             <div class="card card-outline-secondary my-4">
                 <div class="card-header">
-                    {!! $items->isNotEmpty() ? 'Articles' : '<div class="spinner-border text-info get-items-spinner" role="status"></div><a href="/items/fetch" class="btn btn-outline-primary float-right get-items">Get articles</a>' !!}
-                </div>
-                @if($items->isNotEmpty())
-                    <div class="card-body">
-                        @foreach($items as $item)
-                            <h3><a href="{{ $item->link }}" target="_blank">{{ $item->title }}</a></h3>
-                            <p>{!! $item->description !!}</p>
-                            <small class="text-muted">Posted by Anonymous on {{ $item->last_modified }}</small>
-                            @if(!$loop->last)
-                                <hr>
+                    <form action="{{ route('items.store') }}" method="post">
+                        @csrf
+                        <div class="form-group">
+                            <label for="xml_link">XML Link</label>
+                            <input type="text" name="xml_link" class="form-control" id="xml_link" placeholder="https://www.example.com/atom.xml">
+                            @if ($errors->any())
+                                <div class="alert alert-danger">
+                                    <ul>
+                                        @foreach ($errors->all() as $error)
+                                            <li>{{ $error }}</li>
+                                        @endforeach
+                                    </ul>
+                                </div>
                             @endif
-                        @endforeach
-                    </div>
-                    {{ $items->links() }}
-                @endif
+                        </div>
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </form>
+                </div>
             </div>
             <!-- /.card -->
 
@@ -111,24 +109,6 @@
     <!-- /.container -->
 </footer>
 <script src="{{ asset('js/app.js') }}"></script>
-<script>
-    $(document).ready(function () {
-        const getItemsSpinner = $('.get-items-spinner')
-        getItemsSpinner.hide()
-        $('.get-items').on('click', function (e) {
-            e.preventDefault()
-            getItemsSpinner.show()
-            axios.post("{{ route('items.fetch') }}").then(function (res) {
-                //
-                getItemsSpinner.hide()
-            }).catch(function (err) {
-                console.log(err)
-            }).finally(function () {
-                location.href = "{{ route('items.index') }}"
-            })
-        })
-    })
-</script>
 </body>
 
 </html>

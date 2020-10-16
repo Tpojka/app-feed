@@ -15,7 +15,7 @@ class CreateAuthorsTable extends Migration
     {
         Schema::create('authors', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('item_id')->constrained();
+            $table->foreignId('item_id')->constrained()->onUpdate('cascade')->onDelete('cascade');;
             $table->string('name')->nullable();
             $table->string('uri')->nullable();
             $table->string('email')->nullable();

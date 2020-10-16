@@ -15,7 +15,7 @@ class CreateMediaTable extends Migration
     {
         Schema::create('media', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('item_id')->constrained();
+            $table->foreignId('item_id')->constrained()->onUpdate('cascade')->onDelete('cascade');;
             $table->string('node_name')->nullable();
             $table->string('type')->nullable();
             $table->string('url')->nullable();

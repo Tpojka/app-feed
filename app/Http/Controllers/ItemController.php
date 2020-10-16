@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Item\ItemRateRequest;
+use App\Http\Requests\Item\ItemStoreRequest;
 use App\Item;
 use App\Service\Feed\FeedService;
 use Exception;
@@ -10,6 +11,7 @@ use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
@@ -39,15 +41,25 @@ class ItemController extends Controller
      */
     public function index(Request $request)
     {
-        $getPage = 1;
-
-        if (1 <= (int)$request->get('page')) {
+        try {
             $getPage = (int)$request->get('page');
+
+            if ((int)$getPage > (int)Cache::get('items:pagination:total_pages')
+                || 0 === (int)$getPage) {
+
+                $getPage = 1;
+            }
+
+            $items = Cache::get('items:index:get_page_' . (string)$getPage);
+
+            if (!$items) {
+                $items = $this->fetchItems($getPage);
+            }
+        } catch (Throwable $t) {
+            $items = new Collection();
+        } finally {
+            return view('item.index', compact('items'));
         }
-
-        $items = $this->fetchItems($getPage);
-
-        return view('item.index', compact('items'));
     }
 
     /**
@@ -55,22 +67,16 @@ class ItemController extends Controller
      * @param string|null $source
      * @return LengthAwarePaginator
      * @throws InvalidArgumentException
+     * @throws Throwable
      */
     private function fetchItems(int $getPage = 1, ?string $source = null): ?LengthAwarePaginator
     {
-        $return = null;
-
         try {
-            if (!$items = Cache::store('file')->get('items:index:get_page_' . (string)$getPage)) {
-                if (!Item::count()) {
-                    $this->feedService->fetchFeed();
-                }
-                $data = Item::paginate(10);
-                Cache::store('file')->put('items:index:get_page_' .  (string)$data->currentPage(), $data, 3600);
-            }
+            // cache setting
+            $this->feedService->fetchFeed($getPage);
             $return = Cache::store('file')->get('items:index:get_page_' . (string)$getPage);
-        } catch (Exception $e) {
-            $return = null;
+        } catch (Throwable $t) {
+            throw $t;
         } finally {
             return $return;
         }
@@ -89,12 +95,20 @@ class ItemController extends Controller
     /**
      * Store a newly created resource in storage.
      *
-     * @param Request $request
-     * @return Response
+     * @param ItemStoreRequest $request
+     * @return RedirectResponse
+     * @throws Throwable
      */
-    public function store(Request $request)
+    public function store(ItemStoreRequest $request)
     {
-        //
+        try {
+            Cache::store('file')->clear();
+            $this->feedService->fetchFeed(1, $request->input('xml_link'));
+            return redirect()->route('items.index');
+        } catch (Throwable $t) {
+            Log::error(formatErrorLine($t));
+            return redirect()->back()->withErrors(['error' => 'Something went wrong, please try again.']);
+        }
     }
 
     /**
@@ -145,6 +159,7 @@ class ItemController extends Controller
     /**
      * @param Request $request
      * @return JsonResponse
+     * @throws Throwable
      */
     public function fetch(Request $request): JsonResponse
     {
@@ -153,6 +168,7 @@ class ItemController extends Controller
             if (!$request->ajax()) {
                 throw new BadRequestException('Method Not Allowed', 405);
             }
+            // no items so ?page=1
             $items = $this->fetchItems();
             if (is_null($items)) {
                 throw new Exception('Server error.', 500);

@@ -18,12 +18,12 @@ class ItemTest extends TestCase
         parent::setUp();
 
         Artisan::call('cache:clear');
-        Artisan::call('migrate:refresh');
+        Artisan::call('migrate:fresh');
     }
 
     public function tearDown(): void
     {
-        Artisan::call('migrate:reset');
+        Artisan::call('migrate:refresh');
         parent::tearDown();
     }
 
@@ -53,7 +53,7 @@ class ItemTest extends TestCase
         $this->expectException(UnexpectedValueException::class);
 
         $feedService = new FeedService();
-        $feedService->fetchFeed('https://www.google.com');
+        $feedService->fetchFeed(1,'https://www.google.com');
     }
 
     /**
@@ -85,11 +85,9 @@ class ItemTest extends TestCase
         $this->fetchFeed();
 
         $response = $this->post('/items/rate', ['item_id' => 1, 'rating' => 5]);
-
-        $this->assertEquals(500, $response->getStatusCode());
-
         $content = json_decode($response->getContent(), true);
 
+        $this->assertEquals(500, $response->getStatusCode());
         $this->assertEquals('Server error.', $content['error']);
     }
 
