@@ -13,7 +13,6 @@ use App\Item;
 use App\ReaderResult;
 use Carbon\Carbon;
 use Exception;
-use FeedIo\Factory;
 use FeedIo\Feed\ItemInterface;
 use FeedIo\FeedInterface;
 use FeedIo\FeedIo;
@@ -22,6 +21,14 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 use Throwable;
 use UnexpectedValueException;
+
+use FeedIo\Adapter\Guzzle\Client;
+use GuzzleHttp\Client As GuzzleClient;
+use GuzzleHttp\HandlerStack;
+use Kevinrob\GuzzleCache\CacheMiddleware;
+use Psr\Log\NullLogger;
+use Kevinrob\GuzzleCache\Strategy\PrivateCacheStrategy;
+use Kevinrob\GuzzleCache\Storage\LaravelCacheStorage;
 
 class FeedService
 {
@@ -35,8 +42,27 @@ class FeedService
 
     public function __construct()
     {
-        // create a simple FeedIo instance
-        $this->feedIo = Factory::create()->getFeedIo();
+        // Create default HandlerStack
+        $stack = HandlerStack::create();
+
+        // Add this middleware to the top with `push`
+        $stack->push(
+            new CacheMiddleware(
+                new PrivateCacheStrategy(
+                    new LaravelCacheStorage(
+                        Cache::store('file')
+                    )
+                )
+            ),
+            'cache'
+        );
+
+        // Initialize the client with the handler option
+        $guzzle = new GuzzleClient(['handler' => $stack]);
+        $client = new Client($guzzle);
+        $logger = new NullLogger();
+
+        $this->feedIo = new FeedIo($client, $logger);
     }
 
     /**
