@@ -100,7 +100,6 @@ class FeedService
                 $diff = $now->diffInSeconds($then);
             }
 
-            // task point 8
             // do not make guzzle call if last article is newer than [config cache feed_recent] seconds
             if (!is_null($diff) && config('cache.feed_recent') > $diff) {
                 // we already have recent articles
@@ -120,7 +119,6 @@ class FeedService
             } else {
                 $result = $this->feedIo->read($source);
             }
-
 
             // reader result
             $readerResult = $this->storeReaderResult($result);

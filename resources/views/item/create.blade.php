@@ -27,19 +27,13 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarResponsive">
             <ul class="navbar-nav ml-auto">
-                <li class="nav-item active">
-                    <a class="nav-link" href="{{ route('items.index') }}">Home
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ route('items.index') }}">Items
                         <span class="sr-only">(current)</span>
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">About</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">Services</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">Contact</a>
+                <li class="nav-item active">
+                    <a class="nav-link" href="{{ route('items.create') }}">Add New XML</a>
                 </li>
             </ul>
         </div>
@@ -55,7 +49,7 @@
             <h1 class="my-4">Feed Assignment</h1>
             <div class="list-group">
                 <a href="{{ route('items.index') }}" class="list-group-item{{ request()->route()->getName() === 'items.index' ? ' active' : '' }}">Items</a>
-                <a href="{{ route('items.create') }}" class="list-group-item{{ request()->route()->getName() === 'items.create' ? ' active' : '' }}">Add new</a>
+                <a href="{{ route('items.create') }}" class="list-group-item{{ request()->route()->getName() === 'items.create' ? ' active' : '' }}">Add New XML</a>
             </div>
         </div>
         <!-- /.col-lg-3 -->
