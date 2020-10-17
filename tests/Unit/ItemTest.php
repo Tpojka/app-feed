@@ -2,11 +2,13 @@
 
 namespace Tests\Unit;
 
+use App\Http\Requests\Item\ItemStoreRequest;
 use App\Item;
 use App\Service\Feed\FeedService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Validator;
 use PHPUnit\Framework\Assert;
 use ReflectionObject;
 use Tests\TestCase;
@@ -104,5 +106,44 @@ class ItemTest extends TestCase
         $itemsFromCache = Cache::tags(['items_pagination'])->get('items:pagination:get_page_1');
 
         $this->assertTrue($itemsFromCache instanceof LengthAwarePaginator);
+    }
+
+    /**
+     * @test
+     */
+    public function if_invalid_xml_link_is_provided_store_request_will_reject_it()
+    {
+        $request = new ItemStoreRequest();
+
+        $validator = Validator::make(['xml_link' => ''], $request->rules());
+        $this->assertFalse($validator->passes());
+
+        $validator = Validator::make(['xml_link' => 'https://www.google.com'], $request->rules());
+        $this->assertFalse($validator->passes());
+    }
+
+    /**
+     * @test
+     */
+    public function if_xml_link_is_valid_store_request_will_accept_it()
+    {
+        $request = new ItemStoreRequest();
+
+        $validator = Validator::make(['xml_link' => 'https://hnrss.org/newest'], $request->rules());
+
+        $this->assertTrue($validator->passes());
+    }
+
+    public function valid_xml_link_will_fail_if_already_exists_in_db()
+    {
+        $this->fetchFeed();
+        // here we have 'https://xkcd.com/atom.xml' stored
+        // or whatever is changed (if changed) in FeedService::DEFAULT_SOURCE constant
+
+        $request = new ItemStoreRequest();
+
+        $validator = Validator::make(['xml_link' => 'https://xkcd.com/atom.xml'], $request->rules());
+
+        $this->assertFalse($validator->passes());
     }
 }

@@ -70,13 +70,10 @@ class ItemController extends Controller
     private function fetchItems(int $getPage = 1, ?string $source = null): ?LengthAwarePaginator
     {
         try {
-            // cache setting
             $this->feedService->fetchFeed($getPage);
-            $return = Cache::tags(['items_pagination'])->get('items:pagination:get_page_' . (string)$getPage);
+            return Cache::tags(['items_pagination'])->get('items:pagination:get_page_' . (string)$getPage);
         } catch (Throwable $t) {
             throw $t;
-        } finally {
-            return $return;
         }
     }
 

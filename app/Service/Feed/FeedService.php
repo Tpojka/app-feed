@@ -49,7 +49,7 @@ class FeedService
             new CacheMiddleware(
                 new PrivateCacheStrategy(
                     new LaravelCacheStorage(
-                        Cache::store('memcached')
+                        Cache::store(config('cache.default'))
                     )
                 )
             ),
@@ -101,7 +101,7 @@ class FeedService
             }
 
             // task point 8
-            // make guzzle call every [config] hour
+            // do not make guzzle call if last article is newer than [config cache feed_recent] seconds
             if (!is_null($diff) && config('cache.feed_recent') > $diff) {
                 // we already have recent articles
                 $itemsPaginate = Item::orderBy('last_modified')->paginate(10, ['*'], 'page', $getPage);

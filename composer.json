@@ -18,6 +18,7 @@
         "kevinrob/guzzle-cache-middleware": "^3.3",
         "laravel/framework": "^7.24",
         "laravel/tinker": "^2.0",
+        "predis/predis": "^1.1",
         "willvincent/laravel-rateable": "^2.2"
     },
     "require-dev": {
