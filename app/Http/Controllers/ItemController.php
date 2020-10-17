@@ -37,20 +37,19 @@ class ItemController extends Controller
      *
      * @param Request $request
      * @return Application|Factory|Response|View
-     * @throws InvalidArgumentException
      */
     public function index(Request $request)
     {
         try {
             $getPage = (int)$request->get('page');
 
-            if ((int)$getPage > (int)Cache::get('items:pagination:total_pages')
+            if ((int)$getPage > (int)Cache::tags(['items_pagination'])->get('items:pagination:total_pages')
                 || 0 === (int)$getPage) {
 
                 $getPage = 1;
             }
 
-            $items = Cache::get('items:index:get_page_' . (string)$getPage);
+            $items = Cache::tags(['items_pagination'])->get('items:pagination:get_page_' . (string)$getPage);
 
             if (!$items) {
                 $items = $this->fetchItems($getPage);
@@ -66,7 +65,6 @@ class ItemController extends Controller
      * @param int $getPage
      * @param string|null $source
      * @return LengthAwarePaginator
-     * @throws InvalidArgumentException
      * @throws Throwable
      */
     private function fetchItems(int $getPage = 1, ?string $source = null): ?LengthAwarePaginator
@@ -74,7 +72,7 @@ class ItemController extends Controller
         try {
             // cache setting
             $this->feedService->fetchFeed($getPage);
-            $return = Cache::store('file')->get('items:index:get_page_' . (string)$getPage);
+            $return = Cache::tags(['items_pagination'])->get('items:pagination:get_page_' . (string)$getPage);
         } catch (Throwable $t) {
             throw $t;
         } finally {
@@ -102,7 +100,7 @@ class ItemController extends Controller
     public function store(ItemStoreRequest $request)
     {
         try {
-            Cache::store('file')->clear();
+            Cache::tags('items_pagination')->flush();
             $this->feedService->fetchFeed(1, $request->input('xml_link'));
             return redirect()->route('items.index');
         } catch (Throwable $t) {
@@ -160,6 +158,7 @@ class ItemController extends Controller
      * @param Request $request
      * @return JsonResponse
      * @throws Throwable
+     * @deprecated
      */
     public function fetch(Request $request): JsonResponse
     {

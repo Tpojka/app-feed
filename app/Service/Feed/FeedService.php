@@ -13,22 +13,21 @@ use App\Item;
 use App\ReaderResult;
 use Carbon\Carbon;
 use Exception;
+use FeedIo\Adapter\Guzzle\Client;
 use FeedIo\Feed\ItemInterface;
 use FeedIo\FeedInterface;
 use FeedIo\FeedIo;
 use FeedIo\Reader\Result;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Cache;
-use Throwable;
-use UnexpectedValueException;
-
-use FeedIo\Adapter\Guzzle\Client;
 use GuzzleHttp\Client As GuzzleClient;
 use GuzzleHttp\HandlerStack;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 use Kevinrob\GuzzleCache\CacheMiddleware;
-use Psr\Log\NullLogger;
-use Kevinrob\GuzzleCache\Strategy\PrivateCacheStrategy;
 use Kevinrob\GuzzleCache\Storage\LaravelCacheStorage;
+use Kevinrob\GuzzleCache\Strategy\PrivateCacheStrategy;
+use Psr\Log\NullLogger;
+use Throwable;
+use UnexpectedValueException;
 
 class FeedService
 {
@@ -37,8 +36,8 @@ class FeedService
      */
     private $feedIo = null;
 
-//    private CONST DEFAULT_SOURCE = 'https://xkcd.com/atom.xml';
-    private CONST DEFAULT_SOURCE = 'https://rss.dw.com/atom/rss-en-all';
+    private CONST DEFAULT_SOURCE = 'https://xkcd.com/atom.xml';
+//    private CONST DEFAULT_SOURCE = 'https://rss.dw.com/atom/rss-en-all';
 
     public function __construct()
     {
@@ -50,7 +49,7 @@ class FeedService
             new CacheMiddleware(
                 new PrivateCacheStrategy(
                     new LaravelCacheStorage(
-                        Cache::store('file')
+                        Cache::store('memcached')
                     )
                 )
             ),
@@ -86,11 +85,14 @@ class FeedService
 
             $sourceExists = $this->isSourceAlreadyExistsInDb($source);
 
-            $lastItem = Item::query()->when($sourceExists, function (Builder $query) use ($source) {
-                $query->where(['feed.reader_result' => $source]);
+            // @todo modified_since field should be used instead of $diff
+            $lastItem = Item::whereHas('feed', function (Builder $queryFeed) use ($source) {
+                $queryFeed->whereHas('readerResult', function (Builder $queryReaderResult) use ($source) {
+                    $queryReaderResult->where(['url' => $source]);
+                });
             })->orderBy('last_modified', 'desc')->first();
 
-            $diff = 7776000;// last 90 days
+            $diff = null;
 
             if ($lastItem) {
                 $now = Carbon::now();
@@ -98,11 +100,13 @@ class FeedService
                 $diff = $now->diffInSeconds($then);
             }
 
-            // @todo this hard-coded value should go to config file
-            if (7200 > $diff) {
-                $itemsPaginate = Item::paginate(10, ['*'], 'page', $getPage);
-                Cache::store('file')->put('items:index:get_page_' . (string)$getPage, $itemsPaginate);
-                Cache::store('file')->put('items:pagination:total_pages', $itemsPaginate->total());
+            // task point 8
+            // make guzzle call every [config] hour
+            if (!is_null($diff) && config('cache.feed_recent') > $diff) {
+                // we already have recent articles
+                $itemsPaginate = Item::orderBy('last_modified')->paginate(10, ['*'], 'page', $getPage);
+                Cache::tags(['items_pagination'])->put('items:pagination:get_page_' . (string)$getPage, $itemsPaginate, config('cache.feed_recent'));
+                Cache::tags(['items_pagination'])->put('items:pagination:total_pages', $itemsPaginate->total(), config('cache.feed_recent'));
             }
 
             if (isset($itemsPaginate) && $itemsPaginate->isNotEmpty()) {
@@ -111,13 +115,18 @@ class FeedService
             }
 
             // read a feed
-            $result = $this->feedIo->readSince($source, new Carbon("-$diff seconds"));
+            if (!is_null($diff)) {
+                $result = $this->feedIo->readSince($source, new Carbon("-$diff seconds"));
+            } else {
+                $result = $this->feedIo->read($source);
+            }
+
 
             // reader result
             $readerResult = $this->storeReaderResult($result);
 
             // feed
-            $feed = $this->storeFeed($readerResult->id, $result->getFeed());
+            $feed = $this->storeFeed($readerResult, $result->getFeed());
             if (1 <= $result->getFeed()->getCategories()->count()) {
                 $this->storeFeedCategories($feed, $result->getFeed()->getCategories());
             }
@@ -125,10 +134,9 @@ class FeedService
             // items
             $this->storeItems($feed, $result->getFeed());
 
-            $itemsPaginate = Item::paginate(10);
-
-            Cache::store('file')->put('items:index:get_page_' . (string)$getPage, $itemsPaginate);
-            Cache::store('file')->put('items:pagination:total_pages', $itemsPaginate->total());
+            $itemsPaginate = Item::orderBy('last_modified')->paginate(10, ['*'], 'page', $getPage);
+            Cache::tags(['items_pagination'])->put('items:pagination:get_page_' . (string)$getPage, $itemsPaginate, config('cache.feed_recent'));
+            Cache::tags(['items_pagination'])->put('items:pagination:total_pages', $itemsPaginate->total(), config('cache.feed_recent'));
 
         } catch (Throwable $t) {
             throw $t;
@@ -145,16 +153,14 @@ class FeedService
             'modified_since' => $feedioReaderResult->getModifiedSince(),
             'date' => $feedioReaderResult->getDate(),
             'document_content' => $feedioReaderResult->getResponse()->getBody() ?? null,
-            'url' => $feedioReaderResult->getUrl(),
         ];
 
-        return ReaderResult::create($create);
+        return ReaderResult::updateOrCreate(['url' => $feedioReaderResult->getUrl()], $create);
     }
 
-    private function storeFeed($readerResultId, FeedInterface $feedioFeed)
+    private function storeFeed(ReaderResult $readerResult, FeedInterface $feedioFeed)
     {
-        $create = [
-            'reader_result_id' => $readerResultId,
+        $updateOrCreate = [
             'url' => $feedioFeed->getUrl(),
             'language' => $feedioFeed->getLanguage(),
             'logo' => $feedioFeed->getLogo(),
@@ -166,7 +172,7 @@ class FeedService
             'host' => $feedioFeed->getHost(),
         ];
 
-        return Feed::create($create);
+        return $readerResult->feed()->updateOrCreate($updateOrCreate);
     }
 
     private function storeFeedCategories(Feed $feed, iterable $feedioFeedCategories)
@@ -206,7 +212,9 @@ class FeedService
                 $newItem->author()->create($authorInsertData);
             }
 
-            $mediaInsertData = $this->mediaInsertData($item);
+            // $newItem is DB Item model
+            // $item is ItemInterface object
+            $mediaInsertData = $this->mediaInsertData($newItem, $item);
 
             if (!empty($mediaInsertData)) {
                 // media
@@ -269,10 +277,11 @@ class FeedService
     }
 
     /**
+     * @param Item $newItem
      * @param ItemInterface $item
      * @return array
      */
-    private function mediaInsertData(ItemInterface $item): array
+    private function mediaInsertData(Item $newItem, ItemInterface $item): array
     {
         $mediaInsertData = [];
         try {
@@ -286,6 +295,7 @@ class FeedService
 
             foreach ($media as $m) {
                 $mediaInsertData[] = [
+                    'item_id' => $newItem->id,
                     'node_name' => $m->getNodeName(),
                     'type' => $m->getType(),
                     'url' => $m->getUrl(),

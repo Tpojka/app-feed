@@ -98,7 +98,7 @@ class Item extends Model
      */
     public function getFirstMediaAttribute()
     {
-        return $this->media()->latest()->first();
+        return $this->media()->whereNotNull('url')->latest()->first();
     }
 
     public function getAvgRatingAttribute()

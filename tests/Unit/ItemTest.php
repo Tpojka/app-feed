@@ -8,6 +8,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use PHPUnit\Framework\Assert;
+use ReflectionObject;
 use Tests\TestCase;
 use UnexpectedValueException;
 
@@ -23,7 +24,6 @@ class ItemTest extends TestCase
 
     public function tearDown(): void
     {
-        Artisan::call('migrate:refresh');
         parent::tearDown();
     }
 
@@ -34,11 +34,9 @@ class ItemTest extends TestCase
     {
         $feedService = new FeedService();
 
-        $hasFeedio = new \ReflectionObject($feedService);
+        $reflectionFeedService = new ReflectionObject($feedService);
 
-        $hasFeedio->hasProperty('feedIo');
-
-        $this->assertTrue($hasFeedio->hasProperty('feedIo'));
+        $this->assertTrue($reflectionFeedService->hasProperty('feedIo'));
 
         Assert::assertObjectHasAttribute('feedIo', $feedService);
     }
@@ -47,6 +45,7 @@ class ItemTest extends TestCase
      * If valid xml link is passed test will fail
      *
      * @test
+     * @throws \Throwable
      */
     public function check_if_exception_is_thrown_after_invalid_xml_source_string()
     {
@@ -58,6 +57,7 @@ class ItemTest extends TestCase
 
     /**
      * Helper method
+     * @throws \Throwable
      */
     private function fetchFeed(): void
     {
@@ -67,6 +67,7 @@ class ItemTest extends TestCase
 
     /**
      * @test
+     * @throws \Throwable
      */
     public function default_source_is_set_and_its_a_valid_xml()
     {
@@ -96,11 +97,11 @@ class ItemTest extends TestCase
      */
     public function items_from_cache_is_instance_of_length_aware_paginator_object()
     {
-        $items = Item::paginate(10);
+        $items = Item::orderBy('last_modified')->paginate(10);
 
-        Cache::store('file')->put('items:index:get_page_' .  (string)$items->currentPage(), $items, 3600);
+        Cache::tags(['items_pagination'])->put('items:pagination:get_page_' .  (string)$items->currentPage(), $items, 3600);
 
-        $itemsFromCache = Cache::store('file')->get('items:index:get_page_1');
+        $itemsFromCache = Cache::tags(['items_pagination'])->get('items:pagination:get_page_1');
 
         $this->assertTrue($itemsFromCache instanceof LengthAwarePaginator);
     }

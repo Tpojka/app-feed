@@ -84,9 +84,11 @@
                         <h3><a href="{{ $item->link }}" target="_blank">{{ $item->title }}</a></h3>
                     <p>{!! $item->description !!}</p>
                     <small class="text-muted">Posted by {{ $item->author_signature ?: 'Anonymous' }} on {{ $item->last_modified }}</small>
+                    @if($item->first_media)
+                        <img src="{{ $item->first_media->url }}" alt="{{ $item->title }}" width=100%>
+                    @endif
                     <div class="row">
                         <div class="col-sm-6 offset-sm-6 text-right"><p id="average-rating-{{ $item->id }}">{{ $item->avg_rating ? 'Average rating: ' : 'Be first to rate' }} <span>{{ $item->avg_rating }}</span></p> <input id="input-rating-{{$item->id}}" type="number" min="1" max="5" value="5"> <button class="btn btn-outline-secondary btn-rate" data-rate="rate_{{ $item->id }}">Rate</button></div>
-{{--                        <div class="col-6"><input type="number" min="1" max="5" value="5"> <button class="btn btn-outline-secondary">Rate</button></div>--}}
                     </div>
                     @if(!$loop->last)
                     <hr>
