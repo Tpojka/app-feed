@@ -7,8 +7,8 @@ Regardless, I was thinking of generic concept how to make solution for this task
 
 I worked in Homestead environment and following are specification of system used on my local machine:
 
-- Vagrant: 2.2.8 (latest is 2.2.10)
-- Homestead image box: 9.5.1 (latest is 10.1.1)
+- Vagrant: 2.2.8 (latest is 2.2.10); host OS macOS
+- Homestead image box: 9.5.1 (latest is 10.1.1); guest OS Ubuntu
 - PHP: 7.4.9
 - MySQL: 5.7.31-0ubuntu0.18.04.1 (Ubuntu)
 
@@ -16,7 +16,7 @@ Also, for better caching mechanism, memcached or redis should be installed on sy
 
 ###Solution description:
  
-1.) MySQL Workbench is used to describe DB and relation between tables. EER diagram is stored in database/bckp/trivago_feed.png (related to root path) image.
+1.) MySQL Workbench is used to describe DB and relation between tables. EER diagram is stored in database/bckp/trivago_feed.png (related to root path) image. Other than MySQL Workbench I've used PHPStorm's and DataGrips's DB diagram visualisation. 
 
 2.) For relation scheme I decided to follow most of structure of `alexdebril/feed-io` package since it is mainly used and also there is package for Symfony that uses this package so porting to Symfony should be very easy. MySQL is used and tables are following:
 
@@ -30,7 +30,7 @@ Also, for better caching mechanism, memcached or redis should be installed on sy
 
 3.) Laravel framework is used for making this application.
 
-4.) Several tests are written to cover certain application code behavior and secure execution goes flawless.
+4.) Several tests are written to cover certain application code behavior and secure execution goes flawless. After installation, `composer test` or `./vendor/bin/phpunut` command will run tests.
 
 5.) Heading to `[HTTP_HOST]/items` page, list of paginated items can be seen. Each item is presented with anchored title that redirects to original article page, description, author and date. If item has related media, first media image will be shown along.
 
@@ -52,4 +52,6 @@ Other values in `.env` file should be set as well. Those are `APP_URL`, `DB_*`.
 
 `composer install` will bring all needed PHP packages.
 
-`php artisan migrate` will install application tables. 
+`php artisan migrate` will install application tables.
+
+`composer test` will execute available tests. 
