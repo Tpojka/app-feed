@@ -9,7 +9,7 @@ I worked in Homestead environment and following are specification of system used
 
 - Vagrant: 2.2.8 (latest is 2.2.10); host OS macOS
 - Homestead image box: 9.5.1 (latest is 10.1.1); guest OS Ubuntu
-- PHP: 7.4.9
+- PHP: 7.4.13
 - MySQL: 5.7.31-0ubuntu0.18.04.1 (Ubuntu)
 
 Also, for better caching mechanism, memcached or redis should be installed on system where application is going to be used. 
