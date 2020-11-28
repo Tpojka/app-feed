@@ -9,7 +9,7 @@
     <meta name="author" content="">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>Feed Assignment</title>
+    <title>Feed App</title>
 
     <!-- Bootstrap core CSS -->
     <link href="{{ asset('css/app.css') }}" rel="stylesheet">
@@ -21,7 +21,7 @@
 <!-- Navigation -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
     <div class="container">
-        <a class="navbar-brand" href="{{ route('items.index') }}">Feed Assignment</a>
+        <a class="navbar-brand" href="{{ route('items.index') }}">Feed App</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -46,7 +46,7 @@
     <div class="row">
 
         <div class="col-lg-3">
-            <h1 class="my-4">Feed Assignment</h1>
+            <h1 class="my-4">Feed App</h1>
             <div class="list-group">
                 <a href="{{ route('items.index') }}" class="list-group-item{{ request()->route()->getName() === 'items.index' ? ' active' : '' }}">Items</a>
                 <a href="{{ route('items.create') }}" class="list-group-item{{ request()->route()->getName() === 'items.create' ? ' active' : '' }}">Add New XML</a>
@@ -105,7 +105,7 @@
 <!-- Footer -->
 <footer class="py-5 bg-dark">
     <div class="container">
-        <p class="m-0 text-center text-white">Copyright &copy; Feed Assignment 2020</p>
+        <p class="m-0 text-center text-white">Copyright &copy; Feed App 2020</p>
     </div>
     <!-- /.container -->
 </footer>
