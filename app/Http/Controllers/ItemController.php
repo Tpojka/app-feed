@@ -189,7 +189,6 @@ class ItemController extends Controller
      */
     public function rate(ItemRateRequest $request)
     {
-        $return = response()->json(['error' => 'Server error.'], 500);
         try {
             if (!$request->ajax()) {
                 throw new Exception('Not an AJAX call.', 405);

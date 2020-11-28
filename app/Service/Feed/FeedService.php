@@ -1,6 +1,6 @@
 <?php
 /**
- * Project trivago-feed.local
+ * Project app-feed.local
  * File: FeedService.php
  * Created by: tpojka
  * On: 12/10/2020
@@ -21,6 +21,7 @@ use FeedIo\Reader\Result;
 use GuzzleHttp\Client As GuzzleClient;
 use GuzzleHttp\HandlerStack;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 use Kevinrob\GuzzleCache\CacheMiddleware;
 use Kevinrob\GuzzleCache\Storage\LaravelCacheStorage;
@@ -156,6 +157,11 @@ class FeedService
         return ReaderResult::updateOrCreate(['url' => $feedioReaderResult->getUrl()], $create);
     }
 
+    /**
+     * @param ReaderResult $readerResult
+     * @param FeedInterface $feedioFeed
+     * @return Model
+     */
     private function storeFeed(ReaderResult $readerResult, FeedInterface $feedioFeed)
     {
         $updateOrCreate = [
@@ -173,6 +179,10 @@ class FeedService
         return $readerResult->feed()->updateOrCreate($updateOrCreate);
     }
 
+    /**
+     * @param Feed $feed
+     * @param iterable $feedioFeedCategories
+     */
     private function storeFeedCategories(Feed $feed, iterable $feedioFeedCategories)
     {
         foreach ($feedioFeedCategories as $category) {
@@ -241,6 +251,10 @@ class FeedService
         }
     }
 
+    /**
+     * @param string $source
+     * @return mixed
+     */
     public function isSourceAlreadyExistsInDb(string $source)
     {
         return ReaderResult::where(['url' => $source])->exists();

@@ -15,8 +15,8 @@ class CreateItemsTable extends Migration
     {
         Schema::create('items', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('feed_id')->constrained()->onUpdate('cascade')->onDelete('cascade');;
-            $table->string('title')->nullable();
+            $table->foreignId('feed_id')->constrained()->onUpdate('cascade')->onDelete('cascade');
+            $table->text('title')->nullable();
             $table->string('public_id')->nullable();
             $table->text('description')->nullable();
             $table->dateTimeTz('last_modified')->nullable();

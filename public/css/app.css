@@ -10903,3 +10903,7 @@ body {
   padding-top: 56px;
 }
 
+.card-body > p > img {
+  max-width: 100%;
+}
+

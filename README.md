@@ -16,7 +16,7 @@ Also, for better caching mechanism, memcached or redis should be installed on sy
 
 ###Solution description:
  
-1.) MySQL Workbench is used to describe DB and relation between tables. EER diagram is stored in database/bckp/trivago_feed.png (related to root path) image. Other than MySQL Workbench I've used PHPStorm's and DataGrips's DB diagram visualisation. 
+1.) MySQL Workbench is used to describe DB and relation between tables. EER diagram is stored in database/bckp/app_feed.png (related to root path) image. Other than MySQL Workbench I've used PHPStorm's and DataGrips's DB diagram visualisation. 
 
 2.) For relation scheme I decided to follow most of structure of `alexdebril/feed-io` package since it is mainly used and also there is package for Symfony that uses this package so porting to Symfony should be very easy. MySQL is used and tables are following:
 
