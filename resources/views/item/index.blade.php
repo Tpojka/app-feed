@@ -105,7 +105,7 @@
 <!-- Footer -->
 <footer class="py-5 bg-dark">
     <div class="container">
-        <p class="m-0 text-center text-white">Copyright &copy; Feed App 2020</p>
+        <p class="m-0 text-center text-white">Copyright &copy; Feed App {{ date('Y') }} | Code licensed under <a href="https://en.wikipedia.org/wiki/MIT_License" target="_blank">MIT License</a></p>
     </div>
     <!-- /.container -->
 </footer>
