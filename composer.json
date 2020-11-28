@@ -1,10 +1,14 @@
 {
-    "name": "laravel/laravel",
+    "name": "tpojka/app-feed",
     "type": "project",
-    "description": "The Laravel Framework.",
+    "description": "Feed reading and posting application Allows user to import new feed links. Also, allows user to vote for each article while keeping average votes explicit.",
     "keywords": [
-        "framework",
-        "laravel"
+        "laravel",
+        "RSS",
+        "feed",
+        "ATOM",
+        "RSS",
+        "voting system"
     ],
     "license": "MIT",
     "require": {
